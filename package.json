@@ -14,19 +14,30 @@
   "type": "commonjs",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.17.0",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
     "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "http": "^0.0.1-security",
-    "ts-node-dev": "^2.0.0"
+    "http-status-codes": "^2.3.0",
+    "multer": "^2.2.0",
+    "multer-storage-cloudinary": "^4.0.0",
+    "prisma": "^7.4.2",
+    "ts-node-dev": "^2.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@prisma/adapter-pg": "^7.9.0",
+    "@prisma/client": "^7.4.2",
+    "@types/bcrypt": "^6.0.0",
     "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
-    "@types/node": "^24.2.0",
-    "dotenv": "^17.2.2",
-    "prisma": "^6.17.0"
+    "@types/multer": "^2.2.0",
+    "@types/node": "^24.2.0"
   }
 }
