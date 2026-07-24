@@ -1,12 +1,12 @@
 import catchAsync from '../../utils/catchAsync';
 import { Request, Response, NextFunction } from 'express';
-import { UserServices } from './user.services';
 import sendResponse from '../../utils/sendResponse';
 import { StatusCodes } from 'http-status-codes';
+import { AuthServices } from './auth.services';
 
 const signUp = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const result = await UserServices.signUp(req.body);
+    const result = await AuthServices.signUp(req.body);
 
     sendResponse(res, {
       success: true,
@@ -17,6 +17,20 @@ const signUp = catchAsync(
   }
 );
 
-export const UserController = {
+const signIn = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await AuthServices.signIn(req.body);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: 'Credientials login successfully',
+      data: result,
+    });
+  }
+);
+
+export const AuthController = {
   signUp,
+  signIn,
 };

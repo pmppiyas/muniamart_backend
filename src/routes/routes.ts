@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserRouter } from '../module/user/user.routes';
+import { AuthRouter } from '../module/auth/auth.routes';
 
 const router = Router();
 
@@ -10,8 +10,8 @@ interface routerArgs {
 
 const allRoutes: routerArgs[] = [
   {
-    path: '/user',
-    route: UserRouter,
+    path: '/auth',
+    route: AuthRouter,
   },
 ];
 

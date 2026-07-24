@@ -15,4 +15,6 @@ export const env = {
   },
 
   SALT_NUMBER: process.env.SALT_NUMBER as string,
+
+  JWT_SECRET: process.env.JWT_SECRET as string,
 };

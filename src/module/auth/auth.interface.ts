@@ -1,3 +1,8 @@
+export interface ILoginPayload {
+  email: string;
+  password: string;
+}
+
 export enum Role {
   ADMIN = 'ADMIN',
   USER = 'USER',
