@@ -3,9 +3,6 @@ import { ILoginPayload, ISignUp } from './auth.interface';
 import prisma from '../../config/prisma';
 import { Role, UserStatus } from '@prisma/client';
 import { env } from '../../config/env';
-import { AppError } from '../../utils/appError';
-import { StatusCodes } from 'http-status-codes';
-import { jwtTokenGen } from '../../utils/jwtToken';
 
 const signUp = async (payload: ISignUp) => {
   const isUserExist = await prisma.user.findUnique({
@@ -46,36 +43,6 @@ const signUp = async (payload: ISignUp) => {
   return user;
 };
 
-const signIn = async (payload: ILoginPayload) => {
-  const user = await prisma.user.findFirst({
-    where: {
-      email: payload.email,
-      status: 'ACTIVE',
-    },
-  });
-
-  if (!user) {
-    throw new AppError(StatusCodes.NOT_FOUND, 'User not exist by this gmail.');
-  }
-
-  const isCorrectPass = await bcrypt.compare(payload.password, user.password);
-  if (!isCorrectPass) {
-    throw new AppError(StatusCodes.NOT_ACCEPTABLE, 'This password is wrong');
-  }
-
-  const { accessToken, refreshToken } = await jwtTokenGen({
-    id: user.id,
-    email: user.email,
-    role: user.role,
-  });
-
-  return {
-    accessToken,
-    refreshToken,
-  };
-};
-
 export const AuthServices = {
   signUp,
-  signIn,
 };

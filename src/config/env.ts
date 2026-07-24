@@ -16,5 +16,10 @@ export const env = {
 
   SALT_NUMBER: process.env.SALT_NUMBER as string,
 
-  JWT_SECRET: process.env.JWT_SECRET as string,
+  JWT: {
+    ACCESS_TOKEN: process.env.ACCESS_TOKEN as string,
+    ACCESS_EXPIRED: process.env.ACCESS_EXPIRED as string,
+    REFRESH_SECRET: process.env.REFRESH_SECRET as string,
+    REFRESH_EXPIRED: process.env.REFRESH_EXPIRED as string,
+  },
 };

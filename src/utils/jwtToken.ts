@@ -1,31 +1,45 @@
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env';
+import { IUser } from '../module/auth/auth.interface';
 
-export const jwtTokenGen = async (payload: {
-  id: string;
-  email: string;
-  role: string;
-}) => {
-  const accessToken = jwt.sign(
-    { id: payload.id, email: payload.email, role: payload.role },
-    env.JWT_SECRET,
-    {
-      algorithm: 'HS256',
-      expiresIn: '5h',
-    }
-  ) as SignOptions;
+export const createUserToken = (user: IUser) => {
+  const jwtPayload = {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  };
 
-  const refreshToken = jwt.sign(
-    { email: payload.email, role: payload.role },
-    env.JWT_SECRET,
-    {
-      algorithm: 'HS256',
-      expiresIn: '30d',
-    }
+  const accessToken = generateToken(
+    jwtPayload,
+    env.JWT.ACCESS_TOKEN,
+    env.JWT.ACCESS_EXPIRED
   );
 
+  const refreshToken = generateToken(
+    jwtPayload,
+    env.JWT.REFRESH_SECRET,
+    env.JWT.REFRESH_EXPIRED
+  );
   return {
     accessToken,
     refreshToken,
   };
+};
+
+export const generateToken = (
+  payload: JwtPayload,
+  secret: string,
+  expiresIn: string | number = '1d'
+): string => {
+  const token = jwt.sign(payload, secret, {
+    expiresIn,
+    algorithm: 'HS256',
+  } as SignOptions);
+
+  return token;
+};
+
+export const verifyToken = (token: string, secret: string) => {
+  const verifiedToken = jwt.verify(token, secret);
+  return verifiedToken;
 };

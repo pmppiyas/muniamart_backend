@@ -4,6 +4,8 @@ import cors from 'cors';
 import express from 'express';
 import router from './routes/routes';
 import { globalErrorHandler } from './middleware/globalErrorHandler';
+import passport from 'passport';
+import './config/passport';
 
 const app = express();
 
@@ -14,7 +16,7 @@ app.use(
     credentials: true,
   })
 );
-
+app.use(passport.initialize());
 app.use(express.json());
 app.set('trust proxy', 1);
 app.use(compression());

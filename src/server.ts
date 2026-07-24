@@ -62,5 +62,4 @@ function handleProcessEvents() {
   });
 }
 
-// Start the application
 startServer();
