@@ -1,0 +1,18 @@
+enum Role {
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CONFIRMED
+  DELIVERY_IN_PROGRESS
+  DELIVERED
+  CANCELED
+}
