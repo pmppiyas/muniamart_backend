@@ -22,4 +22,6 @@ export const env = {
     REFRESH_SECRET: process.env.REFRESH_SECRET as string,
     REFRESH_EXPIRED: process.env.REFRESH_EXPIRED as string,
   },
+
+  REDIS_URL: process.env.REDIS_URL as string,
 };

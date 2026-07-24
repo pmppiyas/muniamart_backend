@@ -13,7 +13,7 @@ export const buildCategoryTree = (
 
   for (const cat of filteredCategories) {
     categoryList.push({
-      _id: cat.id,
+      id: cat.id,
       name: cat.name,
       slug: cat.slug,
       parentId: cat.parentId,
