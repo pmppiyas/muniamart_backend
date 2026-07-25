@@ -9,11 +9,15 @@ import prisma from '../../config/prisma';
 import Stripe from 'stripe';
 import { stripe } from '../../config/stripe';
 import { env } from '../../config/env';
+import { BkashPayment } from './bkash.payment';
 
 const getPaymentStrategy = (provider: PaymentProvider): IPaymentStrategy => {
   switch (provider) {
     case PaymentProvider.STRIPE:
       return new StripePayment();
+
+    case PaymentProvider.BKASH:
+      return new BkashPayment();
 
     default:
       throw new AppError(
@@ -49,7 +53,7 @@ const createPayment = async (
     where: {
       orderId: order.id,
       status: {
-        in: ['PENDING', 'SUCCESS'],
+        in: ['SUCCESS'],
       },
     },
   });
@@ -73,7 +77,7 @@ const createPayment = async (
       orderId: order.id,
       provider: payload.provider,
       transactionId: paymentIntent.id,
-      status: 'PENDING',
+      status: PaymentStatus.PENDING,
       rawResponse: paymentIntent,
     },
   });
@@ -205,7 +209,126 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
   };
 };
 
+const handleBkashCallback = async (payload: {
+  paymentID?: string;
+  status?: string;
+}) => {
+  const paymentID = payload.paymentID;
+
+  if (!paymentID) {
+    throw new AppError(StatusCodes.BAD_REQUEST, 'Payment ID missing');
+  }
+
+  const payment = await prisma.payment.findUnique({
+    where: {
+      transactionId: paymentID,
+    },
+  });
+
+  if (!payment) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Payment not found');
+  }
+
+  if (payment.status === PaymentStatus.SUCCESS) {
+    return {
+      message: 'Payment already processed',
+    };
+  }
+
+  const bkash = new BkashPayment();
+
+  const executeResponse = await bkash.executePayment(paymentID);
+
+  const verifyResponse = await bkash.verifyPayment(paymentID);
+
+  if (verifyResponse.transactionStatus !== 'Completed') {
+    await prisma.payment.update({
+      where: {
+        id: payment.id,
+      },
+
+      data: {
+        status: PaymentStatus.FAILED,
+        rawResponse: verifyResponse,
+      },
+    });
+
+    return {
+      message: 'Payment failed',
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: {
+        id: payment.id,
+      },
+
+      data: {
+        status: PaymentStatus.SUCCESS,
+        rawResponse: {
+          executeResponse,
+          verifyResponse,
+        },
+      },
+    });
+
+    await tx.order.update({
+      where: {
+        id: payment.orderId,
+      },
+
+      data: {
+        status: OrderStatus.PAID,
+      },
+    });
+
+    const orderItems = await tx.orderItem.findMany({
+      where: {
+        orderId: payment.orderId,
+      },
+    });
+
+    for (const item of orderItems) {
+      const product = await tx.product.findUnique({
+        where: {
+          id: item.productId,
+        },
+
+        select: {
+          stock: true,
+        },
+      });
+
+      if (!product || product.stock < item.quantity) {
+        throw new AppError(
+          StatusCodes.BAD_REQUEST,
+          'Insufficient product stock'
+        );
+      }
+
+      await tx.product.update({
+        where: {
+          id: item.productId,
+        },
+
+        data: {
+          stock: {
+            decrement: item.quantity,
+          },
+        },
+      });
+    }
+  });
+
+  return {
+    message: 'Payment successful',
+    transactionId: paymentID,
+  };
+};
+
 export const PaymentServices = {
   createPayment,
   handleStripeWebhook,
+  handleBkashCallback,
 };

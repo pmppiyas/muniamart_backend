@@ -33,7 +33,18 @@ const stripeWebhook = catchAsync(async (req, res) => {
   });
 });
 
+const bkashCallback = catchAsync(async (req, res) => {
+  const result = await PaymentServices.handleBkashCallback(req.body);
+
+  res.status(StatusCodes.OK).json({
+    success: true,
+    message: 'bKash callback processed successfully',
+    data: result,
+  });
+});
+
 export const PaymentController = {
   createPayment,
   stripeWebhook,
+  bkashCallback,
 };

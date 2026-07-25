@@ -29,4 +29,13 @@ export const env = {
     secretKey: process.env.STRIPE_SECRET_KEY as string,
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET as string,
   },
+
+  bkash: {
+    baseUrl: process.env.BKASH_BASE_URL as string,
+    appKey: process.env.BKASH_APP_KEY as string,
+    appSecret: process.env.BKASH_APP_SECRET as string,
+    username: process.env.BKASH_USERNAME as string,
+    password: process.env.BKASH_PASSWORD as string,
+    callbackUrl: process.env.BKASH_CALLBACK_URL as string,
+  },
 };
