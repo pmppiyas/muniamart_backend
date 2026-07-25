@@ -1,0 +1,21 @@
+model Payment {
+  id String @id @default(cuid())
+
+  orderId String
+
+  provider      PaymentProvider
+  transactionId String          @unique
+
+  status PaymentStatus @default(PENDING)
+
+  rawResponse Json?
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([provider])
+  @@map("payments")
+}

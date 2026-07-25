@@ -17,6 +17,12 @@ app.use(
   })
 );
 app.use(passport.initialize());
+
+app.use(
+  '/api/v1/payment/webhook/stripe',
+  express.raw({ type: 'application/json' })
+);
+
 app.use(express.json());
 app.set('trust proxy', 1);
 app.use(compression());

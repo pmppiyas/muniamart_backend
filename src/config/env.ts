@@ -24,4 +24,9 @@ export const env = {
   },
 
   REDIS_URL: process.env.REDIS_URL as string,
+
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY as string,
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET as string,
+  },
 };

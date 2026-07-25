@@ -16,3 +16,14 @@ enum OrderStatus {
   DELIVERED
   CANCELED
 }
+
+enum PaymentProvider {
+  STRIPE
+  BKASH
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
