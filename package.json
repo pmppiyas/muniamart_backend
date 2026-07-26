@@ -49,5 +49,10 @@
     "@types/passport": "^1.0.17",
     "@types/passport-local": "^1.0.38",
     "passport-local": "^1.0.0"
+  },
+  "overrides": {
+    "multer-storage-cloudinary": {
+      "cloudinary": "$cloudinary"
+    }
   }
 }
