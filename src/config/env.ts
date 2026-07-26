@@ -38,4 +38,9 @@ export const env = {
     password: process.env.BKASH_PASSWORD as string,
     callbackUrl: process.env.BKASH_CALLBACK_URL as string,
   },
+
+  SEED: {
+    ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL as string,
+    ADMIN_PASS: process.env.SEED_ADMIN_PASSWORD as string,
+  },
 };

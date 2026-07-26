@@ -43,6 +43,36 @@ const signUp = async (payload: ISignUp) => {
   return user;
 };
 
+export const adminSeed = async () => {
+  const existingAdmin = await prisma.user.findUnique({
+    where: {
+      email: env.SEED.ADMIN_EMAIL,
+    },
+  });
+
+  if (existingAdmin) {
+    console.log('✅ Admin already exists');
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(
+    env.SEED.ADMIN_PASS,
+    Number(env.SALT_NUMBER)
+  );
+
+  await prisma.user.create({
+    data: {
+      name: 'System Admin',
+      email: env.SEED.ADMIN_EMAIL,
+      password: hashedPassword,
+      role: Role.ADMIN,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  console.log('✅ Admin seeded successfully');
+};
+
 export const AuthServices = {
   signUp,
 };

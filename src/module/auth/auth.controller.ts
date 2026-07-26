@@ -8,6 +8,8 @@ import { AppError } from '../../utils/appError';
 import httpStatus from 'http-status-codes';
 import { createUserToken } from '../../utils/jwtToken';
 import { clearAuthCookies, setAuthCookie } from '../../utils/cookies';
+import { email } from 'zod';
+import { env } from '../../config/env';
 
 const signUp = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {

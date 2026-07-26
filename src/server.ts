@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import http, { Server } from 'http';
 import app from './app';
 import { connectRedis } from './config/redis';
+import { AuthController } from './module/auth/auth.controller';
+import { adminSeed } from './module/auth/auth.services';
 
 dotenv.config();
 
@@ -10,6 +12,7 @@ let server: Server | null = null;
 async function startServer() {
   try {
     await connectRedis();
+    await adminSeed();
     server = http.createServer(app);
     server.listen(process.env.PORT, () => {
       console.log(`🚀 Server is running on port ${process.env.PORT}`);
