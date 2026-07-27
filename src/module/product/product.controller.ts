@@ -33,7 +33,9 @@ const getAllProducts = catchAsync(
 
 const getProductById = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
-    const result = await ProductServices.getProductById(req.params.id);
+    const result = await ProductServices.getProductById(
+      req.params.id as string
+    );
 
     sendResponse(res, {
       success: true,
@@ -46,7 +48,10 @@ const getProductById = catchAsync(
 
 const updateProduct = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
-    const result = await ProductServices.updateProduct(req.params.id, req.body);
+    const result = await ProductServices.updateProduct(
+      req.params.id as string,
+      req.body
+    );
 
     sendResponse(res, {
       success: true,
@@ -59,7 +64,7 @@ const updateProduct = catchAsync(
 
 const deleteProduct = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
-    await ProductServices.deleteProduct(req.params.id);
+    await ProductServices.deleteProduct(req.params.id as string);
 
     sendResponse(res, {
       success: true,

@@ -52,7 +52,7 @@ const getSingleOrder = catchAsync(
 
 const updateOrderStatus = catchAsync(async (req, res) => {
   const result = await OrderServices.updateOrderStatus(
-    req?.params?.id,
+    req?.params?.id as string,
     req.body.status,
     req.user as IJwtPayload
   );
