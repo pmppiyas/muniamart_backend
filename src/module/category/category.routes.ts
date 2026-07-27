@@ -18,6 +18,8 @@ router.post(
 
 router.get('/', CategoryController.getAllCategories);
 
+router.get('/:id', CategoryController.getCategoryById);
+
 router.patch(
   '/',
   authGuard('ADMIN'),

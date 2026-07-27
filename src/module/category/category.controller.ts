@@ -56,9 +56,23 @@ const deleteCategory = catchAsync(
   }
 );
 
+const getCategoryById = catchAsync(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const result = await CategoryServices.getCategoryById(req.params.id);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: 'Category retrieved successfully',
+      data: result,
+    });
+  }
+);
+
 export const CategoryController = {
   createCategory,
   getAllCategories,
+  getCategoryById,
   updateCategory,
   deleteCategory,
 };
