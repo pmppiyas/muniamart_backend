@@ -37,7 +37,7 @@ const getMyOrders = catchAsync(
 const getSingleOrder = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
     const result = await OrderServices.getSingleOrder(
-      req.params.id,
+      req.params.id as string,
       req.user as IJwtPayload
     );
 
