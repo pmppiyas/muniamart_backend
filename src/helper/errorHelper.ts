@@ -35,43 +35,37 @@ export const handleDuplicateError = (error: any) => {
 };
 
 export const handleZodValidatonError = (error: any) => {
-  resetState();
+  const issues = error.issues ?? [];
 
-  const errors = error.issues ?? [];
+  const errorSources = issues.map((issue: any) => {
+    const field = issue.path.join('.');
 
-  const errorSources: { path: string; message: string }[] = [];
-  const missing: string[] = [];
-  const errMode: any[] = [];
+    const capitalize = (text: string) =>
+      text.charAt(0).toUpperCase() + text.slice(1);
 
-  errors.forEach((errObj: any) => {
-    const path = Array.isArray(errObj.path) ? errObj.path[0] : errObj.path;
+    const fieldName = capitalize(field);
 
-    errorSources.push({
-      path: path,
-      message: errObj.message,
-    });
+    let message = issue.message;
 
-    if (path) {
-      missing.push(path);
+    if (issue.code === 'invalid_type') {
+      if (issue.expected === 'string') {
+        message = `${fieldName} must be a string`;
+      } else if (issue.expected === 'number') {
+        message = `${fieldName} must be a number`;
+      } else {
+        message = `${fieldName} has invalid type`;
+      }
     }
 
-    errMode.push(errObj);
+    return {
+      path: field,
+      message,
+    };
   });
 
-  const capitalizedFields = missing
-    .map((item) =>
-      item ? item.charAt(0).toUpperCase() + item.slice(1) : 'Field'
-    )
-    .join(', ');
-
-  const prefix =
-    errMode[0]?.received === 'undefined'
-      ? 'Missing required field'
-      : 'Wrong value in';
-
   return {
-    message: `${prefix}: ${capitalizedFields}`,
-    statusCode: httpStatus.BAD_REQUEST,
+    statusCode: 400,
+    message: errorSources[0]?.message || 'Validation failed',
     errorSources,
   };
 };
@@ -94,19 +88,19 @@ export const prismaError = (err: any) => {
   if (err.code === 'P2025') {
     return {
       statusCode: httpStatus.NOT_FOUND,
-      message: `${err.meta?.modelName || 'Record'} not found`,
+      message: `${err.meta?.modelName || 'Record'} not found.`,
     };
   }
 
   if (err.code === 'P2002') {
     return {
       statusCode: httpStatus.CONFLICT,
-      message: `Unique constraint failed on the field: ${err.meta?.target}`,
+      message: `A record with the same ${err.meta?.target?.join(', ')} already exists.`,
     };
   }
 
   return {
-    statusCode: 500,
-    message: 'Prisma Client Error',
+    statusCode: httpStatus.INTERNAL_SERVER_ERROR,
+    message: err.message || 'An unexpected Prisma error occurred.',
   };
 };

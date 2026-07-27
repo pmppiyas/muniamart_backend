@@ -16,6 +16,6 @@ router.post(
 
 router.post('/webhook/stripe', PaymentController.stripeWebhook);
 
-router.post('/callback/bkash', PaymentController.bkashCallback);
+router.get('/callback/bkash', PaymentController.bkashCallback);
 
 export const PaymentRoutes = router;

@@ -5,3 +5,6 @@ build
 .log
 .logger
 /src/generated/prisma
+
+.vercel
+.env*.local

@@ -93,12 +93,17 @@ const updateProduct = async (id: string, payload: IUpdateProduct) => {
       throw new AppError(StatusCodes.NOT_FOUND, 'Category not found');
     }
   }
+  const { categoryId, status, ...rest } = payload;
+
+  const updateData: any = { ...rest };
+
+  if (status) {
+    updateData.status = status as ProductStatus;
+  }
 
   const updated = await prisma.product.update({
     where: { id },
-    data: {
-      payload,
-    },
+    data: updateData,
     include: { category: true },
   });
 

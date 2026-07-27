@@ -31,25 +31,12 @@ export const validateRequest =
             message: 'Invalid JSON in data field',
           });
         }
-      } else {
-        console.log('No req.body.data found, using req.body directly');
       }
 
       const parsed = schema.safeParse(bodyData);
 
       if (!parsed.success) {
-        console.error(parsed.error.issues[0].message);
-
-        console.error(
-          'Zod validation failed:',
-          JSON.stringify(parsed.error.issues, null, 2)
-        );
-
-        return res.status(400).json({
-          success: false,
-          message: parsed.error.issues[0].message,
-          errors: 'Zod validation failed',
-        });
+        return next(parsed.error);
       }
 
       req.body = parsed.data;

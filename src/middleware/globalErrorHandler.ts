@@ -33,6 +33,18 @@ export const globalErrorHandler = (
   //Prisma Error
   if (err.name === 'PrismaClientKnownRequestError') {
     const prismaErr = prismaError(err);
+
+    return res.status(prismaErr.statusCode).json({
+      success: false,
+      message: prismaErr.message,
+      err,
+      stack: env.NODE_ENV === 'development' ? err.stack : null,
+    });
+  }
+
+  if (err.name === 'PrismaClientValidationError') {
+    const prismaErr = prismaError(err);
+
     return res.status(prismaErr.statusCode).json({
       success: false,
       message: prismaErr.message,
@@ -54,8 +66,7 @@ export const globalErrorHandler = (
 
   res.status(statusCode).json({
     success: false,
-    message: message,
-    err,
+    message,
     stack: env.NODE_ENV === 'development' ? err.stack : null,
   });
 };

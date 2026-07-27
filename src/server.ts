@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 import http, { Server } from 'http';
 import app from './app';
 import { connectRedis } from './config/redis';
-import { AuthController } from './module/auth/auth.controller';
 import { adminSeed } from './module/auth/auth.services';
 
 dotenv.config();
@@ -25,10 +24,6 @@ async function startServer() {
   }
 }
 
-/**
- * Gracefully shutdown the server and close database connections.
- * @param {string} signal - The termination signal received.
- */
 async function gracefulShutdown(signal: string) {
   console.warn(`🔄 Received ${signal}, shutting down gracefully...`);
 
@@ -49,9 +44,6 @@ async function gracefulShutdown(signal: string) {
   }
 }
 
-/**
- * Handle system signals and unexpected errors.
- */
 function handleProcessEvents() {
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
