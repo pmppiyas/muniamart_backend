@@ -3,6 +3,7 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { IJwtPayload } from '../auth/auth.interface';
 import { PaymentServices } from './payment.services';
+import { IbKashCallback } from './payment.interface';
 
 const createPayment = catchAsync(async (req, res) => {
   const result = await PaymentServices.createPayment(
@@ -34,7 +35,9 @@ const stripeWebhook = catchAsync(async (req, res) => {
 });
 
 const bkashCallback = catchAsync(async (req, res) => {
-  const result = await PaymentServices.handleBkashCallback(req.body);
+  const result = await PaymentServices.handleBkashCallback(
+    req.query as unknown as IbKashCallback
+  );
 
   res.status(StatusCodes.OK).json({
     success: true,

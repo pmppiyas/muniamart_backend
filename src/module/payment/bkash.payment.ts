@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { IPaymentStrategy } from './payment.strategy';
 import { env } from '../../config/env';
+import { PaymentStatus } from '@prisma/client';
 
 export class BkashPayment implements IPaymentStrategy {
+  verifySignature(payload: { paymentID: string; status: PaymentStatus; signature: string; }, signature: string) {
+    throw new Error('Method not implemented.');
+  }
   private baseUrl = env.bkash.baseUrl;
 
   private async getToken() {

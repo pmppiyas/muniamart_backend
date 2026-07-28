@@ -15,3 +15,8 @@ export interface IPaymentResponse {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IbKashCallback {
+  paymentID: string;
+  status: PaymentStatus;
+}

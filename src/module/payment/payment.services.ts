@@ -4,7 +4,7 @@ import { StripePayment } from './stripe.payment';
 import { AppError } from '../../utils/appError';
 import { StatusCodes } from 'http-status-codes';
 import { IJwtPayload } from '../auth/auth.interface';
-import { ICreatePaymentRequest } from './payment.interface';
+import { IbKashCallback, ICreatePaymentRequest } from './payment.interface';
 import prisma from '../../config/prisma';
 import Stripe from 'stripe';
 import { stripe } from '../../config/stripe';
@@ -209,11 +209,8 @@ const handleStripeWebhook = async (payload: Buffer, signature: string) => {
   };
 };
 
-const handleBkashCallback = async (payload: {
-  paymentID?: string;
-  status?: string;
-}) => {
-  const paymentID = payload.paymentID;
+const handleBkashCallback = async (payload: IbKashCallback) => {
+  const { paymentID } = payload;
 
   if (!paymentID) {
     throw new AppError(StatusCodes.BAD_REQUEST, 'Payment ID missing');
