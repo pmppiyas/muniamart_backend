@@ -5,15 +5,28 @@ export interface ILoginPayload {
 
 export enum Role {
   ADMIN = 'ADMIN',
-  USER = 'USER',
+  CUSTOMER = 'CUSTOMER',
 }
 
-export interface IUser {
+export interface ICustomer {
   id: string;
   name: string;
   email: string;
-  password: string;
-  role: Role;
+  password?: string;
+  phone?: string | null;
+  photoUrl?: string | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IAdmin {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  photoUrl?: string | null;
+  role: 'SUPER_ADMIN' | 'ADMIN';
   status: 'ACTIVE' | 'INACTIVE';
   createdAt: Date;
   updatedAt: Date;
@@ -23,6 +36,7 @@ export interface ISignUp {
   name: string;
   email: string;
   password: string;
+  phone?: string;
   photoUrl?: string;
 }
 

@@ -53,7 +53,7 @@ const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
   const order = await prisma.$transaction(async (tx) => {
     return await tx.order.create({
       data: {
-        userId: user.userId,
+        customerId: user.userId,
         totalAmount,
         status: 'PENDING',
 
@@ -74,7 +74,7 @@ const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
 const getMyOrders = async (user: IJwtPayload) => {
   const orders = await prisma.order.findMany({
     where: {
-      userId: user.userId,
+      customerId: user.userId,
     },
     include: {
       items: {
@@ -104,7 +104,7 @@ const getSingleOrder = async (orderId: string, user: IJwtPayload) => {
       ? { id: orderId }
       : {
           id: orderId,
-          userId: user.userId,
+          customerId: user.userId,
         };
 
   const order = await prisma.order.findFirst({
@@ -148,8 +148,8 @@ const updateOrderStatus = async (
     throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   }
 
-  if (user.role === Role.USER) {
-    if (order.userId !== user.userId) {
+  if (user.role !== Role.ADMIN) {
+    if (order.customerId !== user.userId) {
       throw new AppError(
         httpStatus.FORBIDDEN,
         'You can update only your own order'

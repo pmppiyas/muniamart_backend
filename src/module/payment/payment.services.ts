@@ -34,7 +34,7 @@ const createPayment = async (
   const order = await prisma.order.findFirst({
     where: {
       id: payload.orderId,
-      userId: user.userId,
+      customerId: user.userId,
     },
   });
 

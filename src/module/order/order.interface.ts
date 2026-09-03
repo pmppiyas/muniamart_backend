@@ -3,7 +3,7 @@ import { OrderStatus } from '@prisma/client';
 export interface IOrder {
   id: string;
 
-  userId: string;
+  customerId: string;
 
   totalAmount: number;
 
@@ -35,7 +35,7 @@ export interface ICreateOrderItem {
 }
 
 export interface ICreateOrder {
-  userId: string;
+  customerId: string;
   items: ICreateOrderItem[];
 }
 

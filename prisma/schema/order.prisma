@@ -1,18 +1,18 @@
 model Order {
   id          String      @id @default(cuid())
-  userId      String
+  customerId  String
   totalAmount Decimal     @db.Decimal(10, 2)
   status      OrderStatus @default(PENDING)
 
-  user User @relation(fields: [userId], references: [id])
+  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  items    OrderItem[]
-  payments Payment[]
+  items       OrderItem[]
+  payments    Payment[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  @@index([userId])
+  @@index([customerId])
   @@index([status])
   @@map("orders")
 }
@@ -23,16 +23,17 @@ model OrderItem {
   orderId   String
   productId String
 
-  quantity Int
-  price    Decimal @db.Decimal(10, 2)
-  subtotal Decimal @db.Decimal(10, 2)
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([orderId])
   @@index([productId])
+  @@map("order_items")
 }

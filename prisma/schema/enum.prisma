@@ -1,11 +1,17 @@
-enum Role {
+enum AdminRole {
+  SUPER_ADMIN
   ADMIN
-  USER
 }
 
-enum UserStatus {
+enum AdminStatus {
   ACTIVE
   INACTIVE
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
 }
 
 enum OrderStatus {

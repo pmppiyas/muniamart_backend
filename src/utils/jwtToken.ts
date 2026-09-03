@@ -1,8 +1,8 @@
 import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env';
-import { IUser } from '../module/auth/auth.interface';
+import { Role } from '../module/auth/auth.interface';
 
-export const createUserToken = (user: IUser) => {
+export const createUserToken = (user: { id: string; email: string; role: Role | string }) => {
   const jwtPayload = {
     userId: user.id,
     email: user.email,

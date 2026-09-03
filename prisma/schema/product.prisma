@@ -16,9 +16,11 @@ model Product {
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  orderItems OrderItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
 
   @@index([categoryId])
   @@index([sku])

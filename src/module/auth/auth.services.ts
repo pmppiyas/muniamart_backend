@@ -1,18 +1,18 @@
 import bcrypt from 'bcrypt';
-import { ILoginPayload, ISignUp } from './auth.interface';
+import { ISignUp } from './auth.interface';
 import prisma from '../../config/prisma';
-import { Role, UserStatus } from '@prisma/client';
+import { AdminRole, AdminStatus, CustomerStatus } from '@prisma/client';
 import { env } from '../../config/env';
 
 const signUp = async (payload: ISignUp) => {
-  const isUserExist = await prisma.user.findUnique({
+  const isCustomerExist = await prisma.customer.findUnique({
     where: {
       email: payload.email,
     },
   });
 
-  if (isUserExist) {
-    throw new Error('User already exists');
+  if (isCustomerExist) {
+    throw new Error('Customer already exists');
   }
 
   const hashedPassword = await bcrypt.hash(
@@ -20,31 +20,37 @@ const signUp = async (payload: ISignUp) => {
     Number(env.SALT_NUMBER)
   );
 
-  const user = await prisma.user.create({
+  const customer = await prisma.customer.create({
     data: {
       name: payload.name,
       email: payload.email,
       password: hashedPassword,
+      phone: payload.phone,
       photoUrl: payload.photoUrl,
-      role: Role.USER,
-      status: UserStatus.ACTIVE,
+      status: CustomerStatus.ACTIVE,
+      cart: {
+        create: {},
+      },
+      wishlist: {
+        create: {},
+      },
     },
     select: {
       id: true,
       name: true,
       email: true,
+      phone: true,
       photoUrl: true,
-      role: true,
       status: true,
       createdAt: true,
     },
   });
 
-  return user;
+  return customer;
 };
 
 export const adminSeed = async () => {
-  const existingAdmin = await prisma.user.findUnique({
+  const existingAdmin = await prisma.admin.findUnique({
     where: {
       email: env.SEED.ADMIN_EMAIL,
     },
@@ -60,13 +66,13 @@ export const adminSeed = async () => {
     Number(env.SALT_NUMBER)
   );
 
-  await prisma.user.create({
+  await prisma.admin.create({
     data: {
       name: 'System Admin',
       email: env.SEED.ADMIN_EMAIL,
       password: hashedPassword,
-      role: Role.ADMIN,
-      status: UserStatus.ACTIVE,
+      role: AdminRole.ADMIN,
+      status: AdminStatus.ACTIVE,
     },
   });
 
