@@ -12,7 +12,22 @@ const app = express();
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ['http://localhost:3000'],
+    origin: (requestOrigin, callback) => {
+      if (!requestOrigin) return callback(null, true);
+      const allowed = [
+        'http://localhost:3000',
+        'http://localhost:5000',
+        'https://muniamart.vercel.app',
+      ];
+      if (
+        allowed.includes(requestOrigin) ||
+        requestOrigin.endsWith('.vercel.app') ||
+        requestOrigin.includes('192.168.')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );

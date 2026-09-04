@@ -4,14 +4,26 @@ enum ProductStatus {
 }
 
 model Product {
-  id          String        @id @default(cuid())
-  name        String
-  sku         String        @unique
-  description String?
-  photoUrl    String?
-  price       Decimal       @db.Decimal(10, 2)
-  stock       Int
-  status      ProductStatus @default(ACTIVE)
+  id              String        @id @default(cuid())
+  name            String
+  sku             String        @unique
+  description     String?
+  photoUrl        String?
+  images          String[]      @default([])
+  price           Decimal       @db.Decimal(10, 2)
+  originalPrice   Decimal?      @db.Decimal(10, 2)
+  discountPercent Int?          @default(0)
+  stock           Int
+  status          ProductStatus @default(ACTIVE)
+  brand           String?
+  rating          Decimal?      @default(5.0) @db.Decimal(3, 2)
+  reviewsCount    Int?          @default(0)
+  isFeatured      Boolean       @default(false)
+  isNew           Boolean       @default(false)
+  isBestSeller    Boolean       @default(false)
+  features        String[]      @default([])
+  specifications  Json?
+  variants        Json?
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])

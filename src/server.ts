@@ -13,8 +13,9 @@ async function startServer() {
     await connectRedis();
     await adminSeed();
     server = http.createServer(app);
-    server.listen(process.env.PORT, () => {
-      console.log(`🚀 Server is running on port ${process.env.PORT}`);
+    const port = process.env.PORT || 5000;
+    server.listen(port, () => {
+      console.log(`🚀 Server is running on port ${port}`);
     });
 
     handleProcessEvents();
@@ -59,4 +60,9 @@ function handleProcessEvents() {
   });
 }
 
-startServer();
+// Only start standalone HTTP server when not running in Vercel Serverless environment
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;

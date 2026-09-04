@@ -50,33 +50,42 @@ const signUp = async (payload: ISignUp) => {
 };
 
 export const adminSeed = async () => {
-  const existingAdmin = await prisma.admin.findUnique({
-    where: {
-      email: env.SEED.ADMIN_EMAIL,
-    },
-  });
+  try {
+    if (!env.SEED?.ADMIN_EMAIL || !env.SEED?.ADMIN_PASS) {
+      console.log('⚠️ Admin seed skipped: SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD not set');
+      return;
+    }
 
-  if (existingAdmin) {
-    console.log('✅ Admin already exists');
-    return;
+    const existingAdmin = await prisma.admin.findUnique({
+      where: {
+        email: env.SEED.ADMIN_EMAIL,
+      },
+    });
+
+    if (existingAdmin) {
+      console.log('✅ Admin already exists');
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      env.SEED.ADMIN_PASS,
+      Number(env.SALT_NUMBER || 10)
+    );
+
+    await prisma.admin.create({
+      data: {
+        name: 'System Admin',
+        email: env.SEED.ADMIN_EMAIL,
+        password: hashedPassword,
+        role: AdminRole.ADMIN,
+        status: AdminStatus.ACTIVE,
+      },
+    });
+
+    console.log('✅ Admin seeded successfully');
+  } catch (error: any) {
+    console.warn('⚠️ Admin seed warning:', error.message || error);
   }
-
-  const hashedPassword = await bcrypt.hash(
-    env.SEED.ADMIN_PASS,
-    Number(env.SALT_NUMBER)
-  );
-
-  await prisma.admin.create({
-    data: {
-      name: 'System Admin',
-      email: env.SEED.ADMIN_EMAIL,
-      password: hashedPassword,
-      role: AdminRole.ADMIN,
-      status: AdminStatus.ACTIVE,
-    },
-  });
-
-  console.log('✅ Admin seeded successfully');
 };
 
 export const AuthServices = {
