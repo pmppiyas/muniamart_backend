@@ -51,43 +51,113 @@ const signUp = async (payload: ISignUp) => {
 
 export const adminSeed = async () => {
   try {
-    if (!env.SEED?.ADMIN_EMAIL || !env.SEED?.ADMIN_PASS) {
-      console.log('⚠️ Admin seed skipped: SEED_ADMIN_EMAIL or SEED_ADMIN_PASSWORD not set');
-      return;
-    }
-
-    const existingAdmin = await prisma.admin.findUnique({
+    // 1. Seed Super Admin (princemahmudpiyas@gmail.com)
+    const superAdminEmail = 'princemahmudpiyas@gmail.com';
+    const existingSuperAdmin = await prisma.admin.findUnique({
       where: {
-        email: env.SEED.ADMIN_EMAIL,
+        email: superAdminEmail,
       },
     });
 
-    if (existingAdmin) {
-      console.log('✅ Admin already exists');
-      return;
+    if (existingSuperAdmin) {
+      if (existingSuperAdmin.role !== AdminRole.SUPER_ADMIN) {
+        await prisma.admin.update({
+          where: { email: superAdminEmail },
+          data: { role: AdminRole.SUPER_ADMIN, status: AdminStatus.ACTIVE },
+        });
+        console.log('✅ Updated princemahmudpiyas@gmail.com to SUPER_ADMIN');
+      }
+    } else {
+      const existingCustomer = await prisma.customer.findUnique({
+        where: { email: superAdminEmail },
+      });
+
+      const superAdminPassword = existingCustomer?.password
+        ? existingCustomer.password
+        : await bcrypt.hash('12345678', Number(env.SALT_NUMBER || 8));
+
+      await prisma.admin.create({
+        data: {
+          name: existingCustomer?.name || 'Prince Mahmud Piyas',
+          email: superAdminEmail,
+          password: superAdminPassword,
+          role: AdminRole.SUPER_ADMIN,
+          status: AdminStatus.ACTIVE,
+        },
+      });
+      console.log('✅ Super Admin (princemahmudpiyas@gmail.com) seeded successfully');
     }
 
-    const hashedPassword = await bcrypt.hash(
-      env.SEED.ADMIN_PASS,
-      Number(env.SALT_NUMBER || 10)
-    );
+    // 2. Seed Standard Admin
+    if (env.SEED?.ADMIN_EMAIL && env.SEED?.ADMIN_PASS) {
+      const existingAdmin = await prisma.admin.findUnique({
+        where: {
+          email: env.SEED.ADMIN_EMAIL,
+        },
+      });
 
-    await prisma.admin.create({
-      data: {
-        name: 'System Admin',
-        email: env.SEED.ADMIN_EMAIL,
-        password: hashedPassword,
-        role: AdminRole.ADMIN,
-        status: AdminStatus.ACTIVE,
-      },
-    });
+      if (!existingAdmin) {
+        const hashedPassword = await bcrypt.hash(
+          env.SEED.ADMIN_PASS,
+          Number(env.SALT_NUMBER || 8)
+        );
 
-    console.log('✅ Admin seeded successfully');
+        await prisma.admin.create({
+          data: {
+            name: 'System Admin',
+            email: env.SEED.ADMIN_EMAIL,
+            password: hashedPassword,
+            role: AdminRole.ADMIN,
+            status: AdminStatus.ACTIVE,
+          },
+        });
+        console.log('✅ Admin seeded successfully');
+      }
+    }
   } catch (error: any) {
     console.warn('⚠️ Admin seed warning:', error.message || error);
   }
 };
 
+const getMe = async (userPayload: { userId: string; email: string; role?: string }) => {
+  if (userPayload.role === 'ADMIN' || userPayload.role === 'SUPER_ADMIN') {
+    const admin = await prisma.admin.findUnique({
+      where: { id: userPayload.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        photoUrl: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+    return admin;
+  }
+
+  const customer = await prisma.customer.findUnique({
+    where: { id: userPayload.userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      photoUrl: true,
+      status: true,
+      createdAt: true,
+      _count: {
+        select: {
+          orders: true,
+        },
+      },
+    },
+  });
+
+  return customer;
+};
+
 export const AuthServices = {
   signUp,
+  getMe,
 };

@@ -6,7 +6,11 @@ import { CartController } from './cart.controller';
 
 const router = Router();
 
-router.get('/', authGuard('CUSTOMER'), CartController.getCart);
+router.get(
+  '/',
+  authGuard('CUSTOMER', 'ADMIN', 'SUPER_ADMIN'),
+  CartController.getCart
+);
 
 router.post(
   '/',

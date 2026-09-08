@@ -6,6 +6,12 @@ import { CategoryServices } from './category.services';
 
 const createCategory = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
+    if (req.file) {
+      req.body.imageUrl = req.file.path;
+    }
+    if (req.body.parentId === '' || req.body.parentId === 'null' || req.body.parentId === 'undefined') {
+      req.body.parentId = null;
+    }
     const result = await CategoryServices.createCategory(req.body);
 
     sendResponse(res, {
@@ -32,7 +38,14 @@ const getAllCategories = catchAsync(
 
 const updateCategory = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
-    const result = await CategoryServices.updateCategory(req.body);
+    if (req.file) {
+      req.body.imageUrl = req.file.path;
+    }
+    if (req.body.parentId === '' || req.body.parentId === 'null' || req.body.parentId === 'undefined') {
+      req.body.parentId = null;
+    }
+    const targetId = req.params.id || req.body.categoryId || req.body.id;
+    const result = await CategoryServices.updateCategory(targetId, req.body);
 
     sendResponse(res, {
       success: true,

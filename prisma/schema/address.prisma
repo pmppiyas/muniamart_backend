@@ -1,0 +1,28 @@
+model Address {
+  id             String    @id @default(cuid())
+  orderId        String    @unique
+  customerId     String?
+
+  fullName       String
+  phone          String
+  email          String?
+  streetAddress  String
+  apartment      String?
+  city           String
+  state          String
+  postalCode     String
+  deliveryNotes  String?
+
+  deliveryMethod String?   @default("standard")
+  paymentMethod  String?   @default("cod")
+
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer       Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([customerId])
+  @@map("addresses")
+}

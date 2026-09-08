@@ -9,14 +9,18 @@ export interface ICategory {
   children?: ICategory[];
   createdAt: Date;
   updatedAt: Date;
+  _count?: {
+    products?: number;
+    children?: number;
+  };
 }
 
 export interface ICreateCategory {
   name: string;
-  parentId?: string;
-  imageUrl?: string;
-  icon?: string;
-  description?: string;
+  parentId?: string | null;
+  imageUrl?: string | null;
+  icon?: string | null;
+  description?: string | null;
 }
 
 export interface IUpdateCategory {

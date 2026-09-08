@@ -2,12 +2,15 @@ import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env';
 import { Role } from '../module/auth/auth.interface';
 
-export const createUserToken = (user: { id: string; email: string; role: Role | string }) => {
-  const jwtPayload = {
+export const createUserToken = (user: { id: string; email: string; role?: Role | string }) => {
+  const jwtPayload: Record<string, any> = {
     userId: user.id,
     email: user.email,
-    role: user.role,
   };
+
+  if (user.role) {
+    jwtPayload.role = user.role;
+  }
 
   const accessToken = generateToken(
     jwtPayload,

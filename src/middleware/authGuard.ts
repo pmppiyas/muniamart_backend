@@ -26,16 +26,23 @@ export const authGuard =
       const decoded = verifyToken(token, env.JWT.ACCESS_TOKEN) as {
         userId: string;
         email: string;
-        role: string;
+        role?: string;
       };
 
-      if (roles.length > 0 && !roles.includes(decoded.role)) {
-        return next(
-          new AppError(
-            StatusCodes.FORBIDDEN,
-            'You do not have permission to perform this action'
-          )
-        );
+      if (roles.length > 0) {
+        const userRole = decoded.role || 'CUSTOMER';
+
+        // ADMIN and SUPER_ADMIN have full access to perform all actions
+        const isPrivileged = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+
+        if (!isPrivileged && !roles.includes(userRole)) {
+          return next(
+            new AppError(
+              StatusCodes.FORBIDDEN,
+              'You do not have permission to perform this action'
+            )
+          );
+        }
       }
 
       (req as any).user = decoded;

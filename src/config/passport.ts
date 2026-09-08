@@ -12,31 +12,7 @@ passport.use(
 
     async (identifier: string, password: string, done: any) => {
       try {
-        // 1. Check Customer
-        const customer = await prisma.customer.findUnique({
-          where: {
-            email: identifier,
-          },
-        });
-
-        if (customer) {
-          const isPasswordMatch = await bcrypt.compare(
-            password,
-            customer.password || ''
-          );
-
-          if (!isPasswordMatch) {
-            return done(null, false, { message: 'Password is wrong.' });
-          }
-
-          return done(
-            null,
-            { ...customer, role: 'CUSTOMER' },
-            { message: 'Login successful.' }
-          );
-        }
-
-        // 2. Check Admin
+        // 1. Check Admin / Super Admin first
         const admin = await prisma.admin.findUnique({
           where: {
             email: identifier,
@@ -55,7 +31,31 @@ passport.use(
 
           return done(
             null,
-            { ...admin, role: 'ADMIN' },
+            { ...admin, role: admin.role || 'ADMIN' },
+            { message: 'Login successful.' }
+          );
+        }
+
+        // 2. Check Customer
+        const customer = await prisma.customer.findUnique({
+          where: {
+            email: identifier,
+          },
+        });
+
+        if (customer) {
+          const isPasswordMatch = await bcrypt.compare(
+            password,
+            customer.password || ''
+          );
+
+          if (!isPasswordMatch) {
+            return done(null, false, { message: 'Password is wrong.' });
+          }
+
+          return done(
+            null,
+            customer,
             { message: 'Login successful.' }
           );
         }
@@ -83,7 +83,7 @@ passport.deserializeUser(async (payload: any, done: any) => {
       const customer = await prisma.customer.findUnique({
         where: { id: payload.id },
       });
-      done(null, customer ? { ...customer, role: 'CUSTOMER' } : null);
+      done(null, customer ? customer : null);
     }
   } catch (error) {
     done(error, null);

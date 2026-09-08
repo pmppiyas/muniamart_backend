@@ -6,7 +6,11 @@ import { WishlistController } from './wishlist.controller';
 
 const router = Router();
 
-router.get('/', authGuard('CUSTOMER'), WishlistController.getWishlist);
+router.get(
+  '/',
+  authGuard('CUSTOMER', 'ADMIN', 'SUPER_ADMIN'),
+  WishlistController.getWishlist
+);
 
 router.post(
   '/',

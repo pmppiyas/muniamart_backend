@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createPaymentSchema = z.object({
-  orderId: z.string().cuid('Invalid order ID'),
+  orderId: z.string().min(1, 'Invalid order ID'),
 
   provider: z.enum(['STRIPE', 'BKASH']),
 });

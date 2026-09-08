@@ -3,14 +3,44 @@ import { AppError } from '../../utils/appError';
 import { StatusCodes } from 'http-status-codes';
 import { IAddToCartPayload } from './cart.interface';
 
+const resolveValidCustomerId = async (customerId: string): Promise<string> => {
+  const customer = await prisma.customer.findUnique({
+    where: { id: customerId },
+  });
+  if (customer) return customer.id;
+
+  const admin = await prisma.admin.findUnique({
+    where: { id: customerId },
+  });
+  if (admin) {
+    let adminCustomer = await prisma.customer.findUnique({
+      where: { email: admin.email },
+    });
+    if (!adminCustomer) {
+      adminCustomer = await prisma.customer.create({
+        data: {
+          name: admin.name,
+          email: admin.email,
+          password: admin.password,
+          status: 'ACTIVE',
+        },
+      });
+    }
+    return adminCustomer.id;
+  }
+  return customerId;
+};
+
 const getOrCreateCart = async (customerId: string) => {
+  const targetCustomerId = await resolveValidCustomerId(customerId);
+
   let cart = await prisma.cart.findUnique({
-    where: { customerId },
+    where: { customerId: targetCustomerId },
   });
 
   if (!cart) {
     cart = await prisma.cart.create({
-      data: { customerId },
+      data: { customerId: targetCustomerId },
     });
   }
 
@@ -18,8 +48,10 @@ const getOrCreateCart = async (customerId: string) => {
 };
 
 const getCart = async (customerId: string) => {
+  const targetCustomerId = await resolveValidCustomerId(customerId);
+
   const cart = await prisma.cart.findUnique({
-    where: { customerId },
+    where: { customerId: targetCustomerId },
     include: {
       items: {
         include: {
@@ -41,16 +73,7 @@ const getCart = async (customerId: string) => {
   });
 
   if (!cart) {
-    const newCart = await prisma.cart.create({
-      data: { customerId },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
+    const newCart = await getOrCreateCart(targetCustomerId);
 
     return {
       id: newCart.id,
@@ -139,8 +162,9 @@ const updateCartItemQuantity = async (
   cartItemId: string,
   quantity: number
 ) => {
+  const targetCustomerId = await resolveValidCustomerId(customerId);
   const cart = await prisma.cart.findUnique({
-    where: { customerId },
+    where: { customerId: targetCustomerId },
   });
 
   if (!cart) {
@@ -171,12 +195,13 @@ const updateCartItemQuantity = async (
     data: { quantity },
   });
 
-  return await getCart(customerId);
+  return await getCart(targetCustomerId);
 };
 
 const removeCartItem = async (customerId: string, cartItemId: string) => {
+  const targetCustomerId = await resolveValidCustomerId(customerId);
   const cart = await prisma.cart.findUnique({
-    where: { customerId },
+    where: { customerId: targetCustomerId },
   });
 
   if (!cart) {
@@ -190,12 +215,13 @@ const removeCartItem = async (customerId: string, cartItemId: string) => {
     },
   });
 
-  return await getCart(customerId);
+  return await getCart(targetCustomerId);
 };
 
 const clearCart = async (customerId: string) => {
+  const targetCustomerId = await resolveValidCustomerId(customerId);
   const cart = await prisma.cart.findUnique({
-    where: { customerId },
+    where: { customerId: targetCustomerId },
   });
 
   if (cart) {

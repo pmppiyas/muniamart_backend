@@ -6,6 +6,9 @@ import { ProductServices } from './product.services';
 
 const createProduct = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
+    if (req.file) {
+      req.body.photoUrl = req.file.path;
+    }
     const result = await ProductServices.createProduct(req.body);
 
     sendResponse(res, {
@@ -18,15 +21,15 @@ const createProduct = catchAsync(
 );
 
 const getAllProducts = catchAsync(
-  async (_req: Request, res: Response, _next: NextFunction) => {
-    const result = await ProductServices.getAllProducts();
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const { products, meta } = await ProductServices.getAllProducts(req.query);
 
     sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
       message: 'Products retrieved successfully',
-      data: result,
-      meta: { total: (result as unknown[]).length },
+      data: products,
+      meta,
     });
   }
 );
@@ -48,6 +51,9 @@ const getProductById = catchAsync(
 
 const updateProduct = catchAsync(
   async (req: Request, res: Response, _next: NextFunction) => {
+    if (req.file) {
+      req.body.photoUrl = req.file.path;
+    }
     const result = await ProductServices.updateProduct(
       req.params.id as string,
       req.body

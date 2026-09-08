@@ -7,9 +7,10 @@ model Customer {
   photoUrl String?
   status   CustomerStatus @default(ACTIVE)
 
-  cart     Cart?
-  wishlist Wishlist?
-  orders   Order[]
+  cart      Cart?
+  wishlist  Wishlist?
+  orders    Order[]
+  addresses Address[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

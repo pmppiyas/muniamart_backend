@@ -3,7 +3,7 @@ import prisma from '../../config/prisma';
 import { AppError } from '../../utils/appError';
 import { StatusCodes } from 'http-status-codes';
 import { getCache, setCache, deleteCache } from '../../config/redis';
-import { ICreateProduct, IUpdateProduct } from './product.interface';
+import { ICreateProduct, IUpdateProduct, IProductQueryParams } from './product.interface';
 import { CACHE_KEYS, CACHE_TTL } from '../../utils/redisKey';
 
 const createProduct = async (payload: ICreateProduct) => {
@@ -40,21 +40,75 @@ const createProduct = async (payload: ICreateProduct) => {
   return product;
 };
 
-const getAllProducts = async () => {
-  const cached = await getCache<object[]>(CACHE_KEYS.ALL_PRODUCTS);
-  if (cached) {
-    return cached;
+const getAllProducts = async (query: IProductQueryParams = {}) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Number(query.limit) || 15);
+  const skip = (page - 1) * limit;
+
+  const where: any = {};
+
+  // Search filter (Name, SKU, Description)
+  if (query.search && query.search.trim() !== '') {
+    const searchTerm = query.search.trim();
+    where.OR = [
+      { name: { contains: searchTerm, mode: 'insensitive' } },
+      { sku: { contains: searchTerm, mode: 'insensitive' } },
+      { description: { contains: searchTerm, mode: 'insensitive' } },
+    ];
   }
 
+  // Category filter
+  if (query.categoryId && query.categoryId !== 'ALL') {
+    where.categoryId = query.categoryId;
+  }
+
+  // Status filter (Active / Inactive / All)
+  if (query.status === 'ALL') {
+    // No status constraint (returns all for admin)
+  } else if (query.status === 'INACTIVE') {
+    where.status = ProductStatus.INACTIVE;
+  } else if (query.status === 'ACTIVE') {
+    where.status = ProductStatus.ACTIVE;
+  } else {
+    // Default to ACTIVE for storefront safety
+    where.status = ProductStatus.ACTIVE;
+  }
+
+  // Stock status filter
+  if (query.stockStatus === 'IN_STOCK') {
+    where.stock = { gt: 5 };
+  } else if (query.stockStatus === 'LOW_STOCK') {
+    where.stock = { gt: 0, lte: 5 };
+  } else if (query.stockStatus === 'OUT_OF_STOCK') {
+    where.stock = { equals: 0 };
+  }
+
+  // Sorting
+  const sortBy = (query.sortBy as string) || 'createdAt';
+  const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
+  const orderBy = { [sortBy]: sortOrder };
+
+  // Total count for metadata
+  const total = await prisma.product.count({ where });
+  const totalPage = Math.ceil(total / limit);
+
   const products = await prisma.product.findMany({
-    where: { status: ProductStatus.ACTIVE },
-    orderBy: { createdAt: 'desc' },
+    where,
+    skip,
+    take: limit,
+    orderBy,
     include: { category: true },
   });
 
-  await setCache(CACHE_KEYS.ALL_PRODUCTS, products, CACHE_TTL);
-
-  return products;
+  return {
+    products,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage,
+    },
+  };
 };
 
 const getProductById = async (id: string) => {

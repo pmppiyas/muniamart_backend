@@ -1,9 +1,9 @@
 import { ICategory } from '../module/category/category.interface';
 
 export const buildCategoryTree = (
-  categories: ICategory[],
+  categories: any[],
   parentId: string | null = null
-): ICategory[] => {
+): any[] => {
   const categoryList: any[] = [];
 
   const filteredCategories =
@@ -13,10 +13,7 @@ export const buildCategoryTree = (
 
   for (const cat of filteredCategories) {
     categoryList.push({
-      id: cat.id,
-      name: cat.name,
-      slug: cat.slug,
-      parentId: cat.parentId,
+      ...cat,
       children: buildCategoryTree(categories, String(cat.id)),
     });
   }

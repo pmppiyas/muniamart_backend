@@ -4,8 +4,57 @@ import prisma from '../../config/prisma';
 import { AppError } from '../../utils/appError';
 import httpStatus from 'http-status-codes';
 import { OrderStatus } from '@prisma/client';
+import { resolveCustomer } from '../../utils/resolveCustomer';
+
+const generateOrderId = async (tx: any): Promise<string> => {
+  const latestOrder = await tx.order.findFirst({
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  let nextSeq = 100000;
+
+  if (latestOrder?.id) {
+    const match = latestOrder.id.match(/\d+/);
+    if (match && match[0]) {
+      const num = parseInt(match[0], 10);
+      if (!isNaN(num) && num >= 100000) {
+        nextSeq = num + 1;
+      }
+    }
+  }
+
+  let orderId = String(nextSeq);
+  let existing = await tx.order.findUnique({
+    where: { id: orderId },
+    select: { id: true },
+  });
+
+  while (existing) {
+    nextSeq++;
+    orderId = String(nextSeq);
+    existing = await tx.order.findUnique({
+      where: { id: orderId },
+      select: { id: true },
+    });
+  }
+
+  return orderId;
+};
 
 const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
+  const customer = await resolveCustomer(user);
+  if (!customer) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'Customer profile not found. Please log in with a customer account.'
+    );
+  }
+
   const productIds = data.items.map((item) => item.productId);
 
   const products = await prisma.product.findMany({
@@ -51,9 +100,12 @@ const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
   });
 
   const order = await prisma.$transaction(async (tx) => {
-    return await tx.order.create({
+    const orderId = await generateOrderId(tx);
+
+    const createdOrder = await tx.order.create({
       data: {
-        customerId: user.userId,
+        id: orderId,
+        customerId: customer.id,
         totalAmount,
         status: 'PENDING',
 
@@ -61,20 +113,67 @@ const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
           create: orderItems,
         },
       },
-
       include: {
         items: true,
       },
     });
+
+    const addr = data.shippingAddress || data.address;
+    if (addr) {
+      await tx.address.create({
+        data: {
+          orderId: createdOrder.id,
+          customerId: customer.id,
+          fullName: addr.fullName,
+          phone: addr.phone,
+          email: addr.email || customer.email || null,
+          streetAddress: addr.streetAddress,
+          apartment: addr.apartment || null,
+          city: addr.city,
+          state: addr.state,
+          postalCode: addr.postalCode,
+          deliveryNotes: addr.deliveryNotes || null,
+          deliveryMethod: addr.deliveryMethod || 'standard',
+          paymentMethod: addr.paymentMethod || 'cod',
+        },
+      });
+    }
+
+    // Automatically clear cart items for this customer upon order placement
+    const userCart = await tx.cart.findUnique({
+      where: { customerId: customer.id },
+    });
+    if (userCart) {
+      await tx.cartItem.deleteMany({
+        where: { cartId: userCart.id },
+      });
+    }
+
+    const finalOrder = await tx.order.findUnique({
+      where: { id: createdOrder.id },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+        address: true,
+      },
+    });
+
+    return finalOrder || createdOrder;
   });
 
   return order;
 };
 
 const getMyOrders = async (user: IJwtPayload) => {
+  const customer = await resolveCustomer(user);
+  const customerId = customer ? customer.id : user.userId;
+
   const orders = await prisma.order.findMany({
     where: {
-      customerId: user.userId,
+      customerId,
     },
     include: {
       items: {
@@ -85,10 +184,12 @@ const getMyOrders = async (user: IJwtPayload) => {
               name: true,
               sku: true,
               price: true,
+              photoUrl: true,
             },
           },
         },
       },
+      address: true,
     },
     orderBy: {
       createdAt: 'desc',
@@ -99,13 +200,26 @@ const getMyOrders = async (user: IJwtPayload) => {
 };
 
 const getSingleOrder = async (orderId: string, user: IJwtPayload) => {
-  const whereCondition =
-    user.role === Role.ADMIN
-      ? { id: orderId }
-      : {
-          id: orderId,
-          customerId: user.userId,
-        };
+  const isPrivileged =
+    user.role === Role.ADMIN ||
+    (user.role as any) === 'SUPER_ADMIN' ||
+    (user as any).role === 'ADMIN' ||
+    (user as any).role === 'SUPER_ADMIN';
+
+  let customerId = user.userId;
+  if (!isPrivileged) {
+    const customer = await resolveCustomer(user);
+    if (customer) {
+      customerId = customer.id;
+    }
+  }
+
+  const whereCondition = isPrivileged
+    ? { id: orderId }
+    : {
+        id: orderId,
+        customerId,
+      };
 
   const order = await prisma.order.findFirst({
     where: whereCondition,
@@ -119,8 +233,19 @@ const getSingleOrder = async (orderId: string, user: IJwtPayload) => {
               sku: true,
               description: true,
               price: true,
+              photoUrl: true,
             },
           },
+        },
+      },
+      address: true,
+      payments: true,
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
         },
       },
     },
@@ -148,8 +273,17 @@ const updateOrderStatus = async (
     throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   }
 
-  if (user.role !== Role.ADMIN) {
-    if (order.customerId !== user.userId) {
+  const isPrivileged =
+    user.role === Role.ADMIN ||
+    (user.role as any) === 'SUPER_ADMIN' ||
+    (user as any).role === 'ADMIN' ||
+    (user as any).role === 'SUPER_ADMIN';
+
+  if (!isPrivileged) {
+    const customer = await resolveCustomer(user);
+    const customerId = customer ? customer.id : user.userId;
+
+    if (order.customerId !== customerId) {
       throw new AppError(
         httpStatus.FORBIDDEN,
         'You can update only your own order'

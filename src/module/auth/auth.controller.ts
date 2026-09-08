@@ -44,9 +44,30 @@ const signIn = catchAsync(
         data: {
           accessToken: userToken.accessToken,
           refreshToken: userToken.refreshToken,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            ...(user.role ? { role: user.role } : {}),
+            photoUrl: user.photoUrl,
+            status: user.status,
+          },
         },
       });
     })(req, res, next);
+  }
+);
+
+const getMe = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const result = await AuthServices.getMe((req as any).user);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: 'User profile retrieved successfully',
+      data: result,
+    });
   }
 );
 
@@ -65,5 +86,6 @@ const logout = catchAsync(
 export const AuthController = {
   signUp,
   signIn,
+  getMe,
   logout,
 };

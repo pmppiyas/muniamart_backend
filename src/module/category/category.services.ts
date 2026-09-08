@@ -24,8 +24,20 @@ const createCategory = async (payload: ICreateCategory) => {
       name: payload.name,
       slug,
       parentId: payload.parentId ?? null,
+      imageUrl: payload.imageUrl ?? null,
+      icon: payload.icon ?? null,
+      description: payload.description ?? null,
     },
-    include: { parent: true, children: true },
+    include: {
+      parent: true,
+      children: true,
+      _count: {
+        select: {
+          products: true,
+          children: true,
+        },
+      },
+    },
   });
 
   await deleteCache(CACHE_KEYS.ALL_CATEGORIES);
@@ -39,7 +51,19 @@ const getAllCategories = async () => {
     return cached;
   }
 
-  const categories = await prisma.category.findMany();
+  const categories = await prisma.category.findMany({
+    include: {
+      _count: {
+        select: {
+          products: true,
+          children: true,
+        },
+      },
+    },
+    orderBy: {
+      name: 'asc',
+    },
+  });
 
   const categoryTree = buildCategoryTree(categories);
 
@@ -58,7 +82,16 @@ const getCategoryById = async (id: string) => {
 
   const category = await prisma.category.findUnique({
     where: { id },
-    include: { parent: true, children: true },
+    include: {
+      parent: true,
+      children: true,
+      _count: {
+        select: {
+          products: true,
+          children: true,
+        },
+      },
+    },
   });
 
   if (!category) {
@@ -70,64 +103,107 @@ const getCategoryById = async (id: string) => {
   return category;
 };
 
-const updateCategory = async (payload: {
-  name: string;
-  categoryId?: string;
-  parentId?: string;
-  MODE: 'EDIT' | 'MOVE';
-}) => {
-  const { name, categoryId, parentId, MODE } = payload;
+const updateCategory = async (
+  idOrPayload: any,
+  data?: any
+) => {
+  let categoryId: string;
+  let updateFields: any;
+
+  if (typeof idOrPayload === 'string') {
+    categoryId = idOrPayload;
+    updateFields = data || {};
+  } else {
+    categoryId = idOrPayload.id || idOrPayload.categoryId;
+    updateFields = { ...idOrPayload };
+    delete updateFields.id;
+    delete updateFields.categoryId;
+  }
+
+  if (!categoryId) {
+    throw new AppError(StatusCodes.BAD_REQUEST, 'Category ID is required');
+  }
 
   const existing = await prisma.category.findUnique({
     where: { id: categoryId },
-    include: { children: true },
   });
 
   if (!existing) {
     throw new AppError(StatusCodes.NOT_FOUND, 'Category not found');
   }
 
-  if (MODE === 'EDIT') {
-    const category = await prisma.category.update({
-      where: {
-        id: categoryId,
-      },
-      data: {
-        name,
-      },
-    });
+  const updateData: any = {};
 
-    await deleteCache(
-      CACHE_KEYS.CATEGORY(categoryId!),
-      CACHE_KEYS.ALL_CATEGORIES
-    );
-
-    return category;
+  if (
+    updateFields.name &&
+    updateFields.name.trim() !== '' &&
+    updateFields.name.trim() !== existing.name
+  ) {
+    updateData.name = updateFields.name.trim();
+    updateData.slug = await generateSlug(updateFields.name.trim());
   }
 
-  if (MODE === 'MOVE') {
-    const category = await prisma.category.update({
-      where: {
-        id: categoryId,
-      },
-      data: {
-        parentId,
-      },
-    });
+  if ('parentId' in updateFields) {
+    const pId =
+      updateFields.parentId === '' ||
+      updateFields.parentId === 'null' ||
+      updateFields.parentId === null
+        ? null
+        : updateFields.parentId;
 
-    await deleteCache(
-      CACHE_KEYS.CATEGORY(categoryId!),
-      CACHE_KEYS.ALL_CATEGORIES
-    );
-
-    return category;
+    if (pId) {
+      if (pId === categoryId) {
+        throw new AppError(
+          StatusCodes.BAD_REQUEST,
+          'A category cannot be its own parent'
+        );
+      }
+      const parent = await prisma.category.findUnique({
+        where: { id: pId },
+      });
+      if (!parent) {
+        throw new AppError(StatusCodes.NOT_FOUND, 'Parent category not found');
+      }
+    }
+    updateData.parentId = pId;
   }
+
+  if (updateFields.description !== undefined) {
+    updateData.description = updateFields.description;
+  }
+  if (updateFields.imageUrl !== undefined) {
+    updateData.imageUrl = updateFields.imageUrl;
+  }
+  if (updateFields.icon !== undefined) {
+    updateData.icon = updateFields.icon;
+  }
+
+  const category = await prisma.category.update({
+    where: { id: categoryId },
+    data: updateData,
+    include: {
+      parent: true,
+      children: true,
+      _count: {
+        select: {
+          products: true,
+          children: true,
+        },
+      },
+    },
+  });
+
+  await deleteCache(
+    CACHE_KEYS.CATEGORY(categoryId),
+    CACHE_KEYS.ALL_CATEGORIES
+  );
+
+  return category;
 };
 
 const deleteCategory = async (id: string) => {
   const existing = await prisma.category.findUnique({
     where: { id },
-    include: { children: true },
   });
 
   if (!existing) {

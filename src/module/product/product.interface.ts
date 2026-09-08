@@ -70,3 +70,14 @@ export interface IUpdateProduct {
   categoryId?: string;
   status?: string;
 }
+
+export interface IProductQueryParams {
+  page?: number | string;
+  limit?: number | string;
+  search?: string;
+  categoryId?: string;
+  status?: string;
+  stockStatus?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}

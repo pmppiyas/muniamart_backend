@@ -8,9 +8,9 @@ interface IUpdateProfilePayload {
   photoUrl?: string;
 }
 
-const getMyProfile = async (customerId: string) => {
+const getMyProfile = async (userId: string) => {
   const customer = await prisma.customer.findUnique({
-    where: { id: customerId },
+    where: { id: userId },
     select: {
       id: true,
       name: true,
@@ -27,11 +27,28 @@ const getMyProfile = async (customerId: string) => {
     },
   });
 
-  if (!customer) {
-    throw new AppError(StatusCodes.NOT_FOUND, 'Customer not found');
+  if (customer) {
+    return customer;
   }
 
-  return customer;
+  const admin = await prisma.admin.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      photoUrl: true,
+      role: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+
+  if (admin) {
+    return admin;
+  }
+
+  throw new AppError(StatusCodes.NOT_FOUND, 'User not found');
 };
 
 const updateMyProfile = async (

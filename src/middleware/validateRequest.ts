@@ -9,7 +9,7 @@ export const validateRequest =
     next: NextFunction
   ) => {
     try {
-      if (!req.body || Object.keys(req.body).length === 0) {
+      if ((!req.body || Object.keys(req.body).length === 0) && !req.file) {
         return res.status(400).json({
           success: false,
           message:

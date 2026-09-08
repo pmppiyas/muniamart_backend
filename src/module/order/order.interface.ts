@@ -29,6 +29,20 @@ export interface IOrderItem {
   updatedAt: Date;
 }
 
+export interface IShippingAddress {
+  fullName: string;
+  phone: string;
+  email?: string;
+  streetAddress: string;
+  apartment?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  deliveryNotes?: string;
+  deliveryMethod?: string;
+  paymentMethod?: string;
+}
+
 export interface ICreateOrderItem {
   productId: string;
   quantity: number;
@@ -37,6 +51,8 @@ export interface ICreateOrderItem {
 export interface ICreateOrder {
   customerId: string;
   items: ICreateOrderItem[];
+  shippingAddress?: IShippingAddress;
+  address?: IShippingAddress;
 }
 
 export interface IOrderResponse {
@@ -56,4 +72,6 @@ export interface IOrderResponse {
 
 export interface ICreateOrderRequest {
   items: ICreateOrderItem[];
+  shippingAddress?: IShippingAddress;
+  address?: IShippingAddress;
 }

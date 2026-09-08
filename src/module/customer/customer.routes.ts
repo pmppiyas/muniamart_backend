@@ -4,7 +4,7 @@ import { CustomerController } from './customer.controller';
 
 const router = Router();
 
-router.get('/me', authGuard('CUSTOMER'), CustomerController.getMyProfile);
+router.get('/me', authGuard(), CustomerController.getMyProfile);
 router.patch('/me', authGuard('CUSTOMER'), CustomerController.updateMyProfile);
 
 export const CustomerRoutes = router;
