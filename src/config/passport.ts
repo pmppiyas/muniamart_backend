@@ -12,7 +12,6 @@ passport.use(
 
     async (identifier: string, password: string, done: any) => {
       try {
-        // 1. Check Admin / Super Admin first
         const admin = await prisma.admin.findUnique({
           where: {
             email: identifier,
@@ -36,7 +35,6 @@ passport.use(
           );
         }
 
-        // 2. Check Customer
         const customer = await prisma.customer.findUnique({
           where: {
             email: identifier,

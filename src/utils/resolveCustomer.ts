@@ -5,7 +5,6 @@ export const resolveCustomer = async (user: {
   email?: string;
   role?: string;
 }) => {
-  // 1. Check if user exists in customer table by id
   let customer = await prisma.customer.findUnique({
     where: { id: user.userId },
   });
@@ -14,7 +13,6 @@ export const resolveCustomer = async (user: {
     return customer;
   }
 
-  // 2. If not found by id and email is available, check customer by email
   const emailToLookup = user.email;
   if (emailToLookup) {
     customer = await prisma.customer.findUnique({
@@ -25,7 +23,6 @@ export const resolveCustomer = async (user: {
     }
   }
 
-  // 3. If user is an Admin/Super Admin, retrieve admin record to create or link customer account
   const admin = await prisma.admin.findUnique({
     where: { id: user.userId },
   });

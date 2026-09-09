@@ -28,13 +28,12 @@ const getPaymentStrategy = (provider: PaymentProvider): IPaymentStrategy => {
 };
 
 const createPayment = async (
-  user: IJwtPayload,
+  user: IJwtPayload | undefined,
   payload: ICreatePaymentRequest
 ) => {
-  const order = await prisma.order.findFirst({
+  const order = await prisma.order.findUnique({
     where: {
       id: payload.orderId,
-      customerId: user.userId,
     },
   });
 

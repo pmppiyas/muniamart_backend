@@ -46,14 +46,24 @@ const generateOrderId = async (tx: any): Promise<string> => {
   return orderId;
 };
 
-const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
-  const customer = await resolveCustomer(user);
-  if (!customer) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      'Customer profile not found. Please log in with a customer account.'
-    );
+const createOrder = async (
+  user: IJwtPayload | undefined,
+  data: ICreateOrderRequest
+) => {
+  let customer: any = null;
+  if (user) {
+    customer = await resolveCustomer(user);
   }
+
+  const addr = data.shippingAddress || data.address;
+
+  if (!customer && addr?.email) {
+    customer = await prisma.customer.findUnique({
+      where: { email: addr.email },
+    });
+  }
+
+  const customerId = customer ? customer.id : null;
 
   const productIds = data.items.map((item) => item.productId);
 
@@ -105,7 +115,7 @@ const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
     const createdOrder = await tx.order.create({
       data: {
         id: orderId,
-        customerId: customer.id,
+        customerId,
         totalAmount,
         status: 'PENDING',
 
@@ -118,15 +128,14 @@ const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
       },
     });
 
-    const addr = data.shippingAddress || data.address;
     if (addr) {
       await tx.address.create({
         data: {
           orderId: createdOrder.id,
-          customerId: customer.id,
+          customerId,
           fullName: addr.fullName,
           phone: addr.phone,
-          email: addr.email || customer.email || null,
+          email: addr.email || customer?.email || null,
           streetAddress: addr.streetAddress,
           apartment: addr.apartment || null,
           city: addr.city,
@@ -139,14 +148,15 @@ const createOrder = async (user: IJwtPayload, data: ICreateOrderRequest) => {
       });
     }
 
-    // Automatically clear cart items for this customer upon order placement
-    const userCart = await tx.cart.findUnique({
-      where: { customerId: customer.id },
-    });
-    if (userCart) {
-      await tx.cartItem.deleteMany({
-        where: { cartId: userCart.id },
+    if (customerId) {
+      const userCart = await tx.cart.findUnique({
+        where: { customerId },
       });
+      if (userCart) {
+        await tx.cartItem.deleteMany({
+          where: { cartId: userCart.id },
+        });
+      }
     }
 
     const finalOrder = await tx.order.findUnique({
@@ -191,9 +201,14 @@ const getMyOrders = async (user: IJwtPayload) => {
       },
       address: true,
     },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: [
+      {
+        createdAt: 'desc',
+      },
+      {
+        id: 'desc',
+      },
+    ],
   });
 
   return orders;
@@ -313,9 +328,228 @@ const updateOrderStatus = async (
   return updatedOrder;
 };
 
+const getAllOrders = async (query: Record<string, any>) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Number(query.limit) || 15);
+  const skip = (page - 1) * limit;
+
+  const { search, status, startDate, endDate } = query;
+
+  const whereConditions: any = {};
+
+  if (status && status !== 'ALL') {
+    whereConditions.status = status;
+  }
+
+  if (search && String(search).trim()) {
+    const s = String(search).trim();
+    whereConditions.OR = [
+      { id: { contains: s, mode: 'insensitive' } },
+      { customer: { name: { contains: s, mode: 'insensitive' } } },
+      { customer: { email: { contains: s, mode: 'insensitive' } } },
+      { customer: { phone: { contains: s, mode: 'insensitive' } } },
+      { address: { fullName: { contains: s, mode: 'insensitive' } } },
+      { address: { email: { contains: s, mode: 'insensitive' } } },
+      { address: { phone: { contains: s, mode: 'insensitive' } } },
+      { address: { city: { contains: s, mode: 'insensitive' } } },
+      { address: { streetAddress: { contains: s, mode: 'insensitive' } } },
+    ];
+  }
+
+  if (startDate || endDate) {
+    whereConditions.createdAt = {};
+    if (startDate) {
+      whereConditions.createdAt.gte = new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      whereConditions.createdAt.lte = end;
+    }
+  }
+
+  const [orders, total, pendingCount, confirmedCount, inProgressCount, deliveredCount, canceledCount] =
+    await Promise.all([
+      prisma.order.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        include: {
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+              photoUrl: true,
+            },
+          },
+          address: true,
+          payments: true,
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  sku: true,
+                  price: true,
+                  photoUrl: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+      }),
+      prisma.order.count({ where: whereConditions }),
+      prisma.order.count({ where: { status: 'PENDING' } }),
+      prisma.order.count({ where: { status: 'CONFIRMED' } }),
+      prisma.order.count({ where: { status: 'DELIVERY_IN_PROGRESS' } }),
+      prisma.order.count({ where: { status: 'DELIVERED' } }),
+      prisma.order.count({ where: { status: 'CANCELED' } }),
+    ]);
+
+  const totalPage = Math.ceil(total / limit);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage,
+      metrics: {
+        total,
+        pending: pendingCount,
+        confirmed: confirmedCount,
+        inProgress: inProgressCount,
+        delivered: deliveredCount,
+        canceled: canceledCount,
+      },
+    },
+    data: orders,
+  };
+};
+
+const updateOrder = async (orderId: string, payload: any) => {
+  const existingOrder = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { address: true },
+  });
+
+  if (!existingOrder) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
+  }
+
+  const { status, shippingAddress, address } = payload;
+  const addrData = shippingAddress || address;
+
+  const result = await prisma.$transaction(async (tx) => {
+    if (status) {
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status },
+      });
+    }
+
+    if (addrData) {
+      if (existingOrder.address) {
+        await tx.address.update({
+          where: { orderId },
+          data: {
+            fullName: addrData.fullName,
+            phone: addrData.phone,
+            email: addrData.email !== undefined ? addrData.email : existingOrder.address.email,
+            streetAddress: addrData.streetAddress,
+            apartment: addrData.apartment !== undefined ? addrData.apartment : existingOrder.address.apartment,
+            city: addrData.city,
+            state: addrData.state,
+            postalCode: addrData.postalCode,
+            deliveryNotes: addrData.deliveryNotes !== undefined ? addrData.deliveryNotes : existingOrder.address.deliveryNotes,
+            deliveryMethod: addrData.deliveryMethod !== undefined ? addrData.deliveryMethod : existingOrder.address.deliveryMethod,
+            paymentMethod: addrData.paymentMethod !== undefined ? addrData.paymentMethod : existingOrder.address.paymentMethod,
+          },
+        });
+      } else {
+        await tx.address.create({
+          data: {
+            orderId,
+            customerId: existingOrder.customerId,
+            fullName: addrData.fullName || '',
+            phone: addrData.phone || '',
+            email: addrData.email || null,
+            streetAddress: addrData.streetAddress || '',
+            apartment: addrData.apartment || null,
+            city: addrData.city || '',
+            state: addrData.state || '',
+            postalCode: addrData.postalCode || '',
+            deliveryNotes: addrData.deliveryNotes || null,
+            deliveryMethod: addrData.deliveryMethod || 'standard',
+            paymentMethod: addrData.paymentMethod || 'cod',
+          },
+        });
+      }
+    }
+
+    return await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            photoUrl: true,
+          },
+        },
+        address: true,
+        payments: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                price: true,
+                photoUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  return result;
+};
+
+const deleteOrder = async (orderId: string) => {
+  const existingOrder = await prisma.order.findUnique({
+    where: { id: orderId },
+  });
+
+  if (!existingOrder) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
+  }
+
+  await prisma.order.delete({
+    where: { id: orderId },
+  });
+
+  return { message: 'Order deleted successfully' };
+};
+
 export const OrderServices = {
   createOrder,
   getMyOrders,
+  getAllOrders,
   getSingleOrder,
+  updateOrder,
   updateOrderStatus,
+  deleteOrder,
 };

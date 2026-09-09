@@ -47,7 +47,6 @@ const getAllProducts = async (query: IProductQueryParams = {}) => {
 
   const where: any = {};
 
-  // Search filter (Name, SKU, Description)
   if (query.search && query.search.trim() !== '') {
     const searchTerm = query.search.trim();
     where.OR = [
@@ -57,24 +56,19 @@ const getAllProducts = async (query: IProductQueryParams = {}) => {
     ];
   }
 
-  // Category filter
   if (query.categoryId && query.categoryId !== 'ALL') {
     where.categoryId = query.categoryId;
   }
 
-  // Status filter (Active / Inactive / All)
   if (query.status === 'ALL') {
-    // No status constraint (returns all for admin)
   } else if (query.status === 'INACTIVE') {
     where.status = ProductStatus.INACTIVE;
   } else if (query.status === 'ACTIVE') {
     where.status = ProductStatus.ACTIVE;
   } else {
-    // Default to ACTIVE for storefront safety
     where.status = ProductStatus.ACTIVE;
   }
 
-  // Stock status filter
   if (query.stockStatus === 'IN_STOCK') {
     where.stock = { gt: 5 };
   } else if (query.stockStatus === 'LOW_STOCK') {
@@ -83,12 +77,10 @@ const getAllProducts = async (query: IProductQueryParams = {}) => {
     where.stock = { equals: 0 };
   }
 
-  // Sorting
   const sortBy = (query.sortBy as string) || 'createdAt';
   const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
   const orderBy = { [sortBy]: sortOrder };
 
-  // Total count for metadata
   const total = await prisma.product.count({ where });
   const totalPage = Math.ceil(total / limit);
 

@@ -17,20 +17,16 @@ export const globalErrorHandler = (
   let statusCode = 500;
   let message = err.message || 'Something went wrong';
 
-  //Duplicate
   if (err.code === 11000 || err.expected) {
     const dupFunc = handleDuplicateError(err);
     statusCode = dupFunc.statusCode;
     message = dupFunc.message;
-  }
-  // Invalid Object ID Error
-  else if (err.name === 'CastError') {
+  } else if (err.name === 'CastError') {
     message = 'Invalid MongoDB ObjectID. Please provide valid ID.';
   } else if (err.name === 'ValidationError') {
     validationError(err);
   }
 
-  //Prisma Error
   if (err.name === 'PrismaClientKnownRequestError') {
     const prismaErr = prismaError(err);
 

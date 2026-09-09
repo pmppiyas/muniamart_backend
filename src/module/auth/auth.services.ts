@@ -51,7 +51,6 @@ const signUp = async (payload: ISignUp) => {
 
 export const adminSeed = async () => {
   try {
-    // 1. Seed Super Admin (princemahmudpiyas@gmail.com)
     const superAdminEmail = 'princemahmudpiyas@gmail.com';
     const existingSuperAdmin = await prisma.admin.findUnique({
       where: {
@@ -88,7 +87,6 @@ export const adminSeed = async () => {
       console.log('✅ Super Admin (princemahmudpiyas@gmail.com) seeded successfully');
     }
 
-    // 2. Seed Standard Admin
     if (env.SEED?.ADMIN_EMAIL && env.SEED?.ADMIN_PASS) {
       const existingAdmin = await prisma.admin.findUnique({
         where: {

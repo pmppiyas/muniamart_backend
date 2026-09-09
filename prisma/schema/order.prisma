@@ -1,10 +1,10 @@
 model Order {
   id          String      @id @default(cuid())
-  customerId  String
+  customerId  String?
   totalAmount Decimal     @db.Decimal(10, 2)
   status      OrderStatus @default(PENDING)
 
-  customer    Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer    Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   items       OrderItem[]
   payments    Payment[]

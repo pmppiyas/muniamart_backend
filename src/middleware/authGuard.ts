@@ -31,8 +31,6 @@ export const authGuard =
 
       if (roles.length > 0) {
         const userRole = decoded.role || 'CUSTOMER';
-
-        // ADMIN and SUPER_ADMIN have full access to perform all actions
         const isPrivileged = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
 
         if (!isPrivileged && !roles.includes(userRole)) {
@@ -53,3 +51,36 @@ export const authGuard =
       );
     }
   };
+
+export const optionalAuthGuard = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const cookieToken: string | undefined =
+      req.cookies?.accessToken || req.cookies?.['access-token'];
+
+    const token =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.split(' ')[1]
+        : cookieToken;
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = verifyToken(token, env.JWT.ACCESS_TOKEN) as {
+      userId: string;
+      email: string;
+      role?: string;
+    };
+
+    (req as any).user = decoded;
+    next();
+  } catch {
+    next();
+  }
+};
+

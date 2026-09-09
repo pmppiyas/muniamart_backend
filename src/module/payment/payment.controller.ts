@@ -7,7 +7,7 @@ import { IbKashCallback } from './payment.interface';
 
 const createPayment = catchAsync(async (req, res) => {
   const result = await PaymentServices.createPayment(
-    req.user as IJwtPayload,
+    req.user as IJwtPayload | undefined,
     req.body
   );
 
