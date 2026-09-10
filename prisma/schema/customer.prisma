@@ -8,7 +8,6 @@ model Customer {
   status   CustomerStatus @default(ACTIVE)
 
   cart      Cart?
-  wishlist  Wishlist?
   orders    Order[]
   addresses Address[]
 

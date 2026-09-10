@@ -31,9 +31,6 @@ const signUp = async (payload: ISignUp) => {
       cart: {
         create: {},
       },
-      wishlist: {
-        create: {},
-      },
     },
     select: {
       id: true,

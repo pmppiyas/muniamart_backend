@@ -32,7 +32,6 @@ model Product {
   updatedAt     DateTime       @updatedAt
   orderItems    OrderItem[]
   cartItems     CartItem[]
-  wishlistItems WishlistItem[]
 
   @@index([categoryId])
   @@index([sku])
