@@ -20,3 +20,23 @@ export interface IbKashCallback {
   paymentID: string;
   status: PaymentStatus;
 }
+
+export interface IPaymentQuery {
+  page?: string | number;
+  limit?: string | number;
+  search?: string;
+  provider?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface IPaymentMetrics {
+  totalPayments: number;
+  successfulCount: number;
+  pendingCount: number;
+  failedCount: number;
+  totalRevenue: number;
+  stripeRevenue: number;
+  bkashRevenue: number;
+}

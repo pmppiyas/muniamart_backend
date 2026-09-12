@@ -4,8 +4,9 @@ model Admin {
   email    String      @unique
   password String
   photoUrl String?
-  role     AdminRole   @default(ADMIN)
-  status   AdminStatus @default(ACTIVE)
+  role        AdminRole   @default(ADMIN)
+  status      AdminStatus @default(ACTIVE)
+  permissions String[]    @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

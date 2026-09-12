@@ -4,6 +4,7 @@ interface Tmeta {
   limit?: number;
   total: number;
   totalPage?: number;
+  metrics?: any;
 }
 
 interface TResponse<T> {

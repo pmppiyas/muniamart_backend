@@ -33,13 +33,25 @@ export const validateRequest =
         }
       }
 
-      const parsed = schema.safeParse(bodyData);
+      let parsed = schema.safeParse(bodyData);
 
       if (!parsed.success) {
-        return next(parsed.error);
-      }
+        // Fallback: check if the schema is wrapped as { body: ... }
+        const wrappedParsed = schema.safeParse({
+          body: bodyData,
+          query: req.query,
+          params: req.params,
+        });
 
-      req.body = parsed.data;
+        if (wrappedParsed.success) {
+          parsed = wrappedParsed;
+          req.body = (wrappedParsed.data as any).body || bodyData;
+        } else {
+          return next(parsed.error);
+        }
+      } else {
+        req.body = parsed.data;
+      }
 
       if (req.file) {
         req.body.photoUrl = req.file.path;

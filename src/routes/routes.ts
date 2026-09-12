@@ -6,6 +6,7 @@ import { OrderRoutes } from '../module/order/order.routes';
 import { PaymentRoutes } from '../module/payment/payment.routes';
 import { CartRoutes } from '../module/cart/cart.routes';
 import { CustomerRoutes } from '../module/customer/customer.routes';
+import { AdminRoutes } from '../module/admin/admin.routes';
 
 const router = Router();
 
@@ -42,6 +43,10 @@ const allRoutes: routerArgs[] = [
   {
     path: '/customer',
     route: CustomerRoutes,
+  },
+  {
+    path: '/admin',
+    route: AdminRoutes,
   },
 ];
 

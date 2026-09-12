@@ -2,7 +2,12 @@ import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { env } from '../config/env';
 import { Role } from '../module/auth/auth.interface';
 
-export const createUserToken = (user: { id: string; email: string; role?: Role | string }) => {
+export const createUserToken = (user: {
+  id: string;
+  email: string;
+  role?: Role | string;
+  permissions?: string[];
+}) => {
   const jwtPayload: Record<string, any> = {
     userId: user.id,
     email: user.email,
@@ -10,6 +15,10 @@ export const createUserToken = (user: { id: string; email: string; role?: Role |
 
   if (user.role) {
     jwtPayload.role = user.role;
+  }
+
+  if (user.permissions) {
+    jwtPayload.permissions = user.permissions;
   }
 
   const accessToken = generateToken(

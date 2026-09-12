@@ -46,8 +46,35 @@ const bkashCallback = catchAsync(async (req, res) => {
   });
 });
 
+const getAllPayments = catchAsync(async (req, res) => {
+  const result = await PaymentServices.getAllPayments(req.query);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Payments retrieved successfully',
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getSinglePayment = catchAsync(async (req, res) => {
+  const result = await PaymentServices.getSinglePayment(
+    req.params.id as string
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: 'Payment details retrieved successfully',
+    data: result,
+  });
+});
+
 export const PaymentController = {
   createPayment,
   stripeWebhook,
   bkashCallback,
+  getAllPayments,
+  getSinglePayment,
 };

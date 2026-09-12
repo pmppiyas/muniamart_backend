@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { OrderController } from './order.controller';
-import { authGuard, optionalAuthGuard } from '../../middleware/authGuard';
-import { Role } from '../auth/auth.interface';
+import { authGuard, optionalAuthGuard, permissionGuard } from '../../middleware/authGuard';
+import { AdminPermission, Role } from '../auth/auth.interface';
 import { validateRequest } from '../../middleware/validateRequest';
 import { createOrderSchema, updateOrderStatusSchema } from './order.validation';
 
@@ -10,6 +10,7 @@ const router = Router();
 router.get(
   '/',
   authGuard(Role.ADMIN),
+  permissionGuard(AdminPermission.MANAGE_ORDERS),
   OrderController.getAllOrders
 );
 
@@ -42,12 +43,14 @@ router.get(
 router.patch(
   '/:id',
   authGuard(Role.ADMIN),
+  permissionGuard(AdminPermission.MANAGE_ORDERS),
   OrderController.updateOrder
 );
 
 router.delete(
   '/:id',
   authGuard(Role.ADMIN),
+  permissionGuard(AdminPermission.MANAGE_ORDERS),
   OrderController.deleteOrder
 );
 

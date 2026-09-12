@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { validateRequest } from '../../middleware/validateRequest';
-import { authGuard } from '../../middleware/authGuard';
+import { authGuard, permissionGuard } from '../../middleware/authGuard';
+import { AdminPermission } from '../auth/auth.interface';
 import { multerUpload } from '../../config/multer.config';
 import {
   createCategorySchema,
@@ -13,6 +14,7 @@ const router = Router();
 router.post(
   '/',
   authGuard('ADMIN'),
+  permissionGuard(AdminPermission.MANAGE_CATEGORIES),
   multerUpload.single('image'),
   validateRequest(createCategorySchema),
   CategoryController.createCategory
@@ -25,6 +27,7 @@ router.get('/:id', CategoryController.getCategoryById);
 router.patch(
   '/:id',
   authGuard('ADMIN'),
+  permissionGuard(AdminPermission.MANAGE_CATEGORIES),
   multerUpload.single('image'),
   validateRequest(updateCategorySchema),
   CategoryController.updateCategory
@@ -33,11 +36,17 @@ router.patch(
 router.patch(
   '/',
   authGuard('ADMIN'),
+  permissionGuard(AdminPermission.MANAGE_CATEGORIES),
   multerUpload.single('image'),
   validateRequest(updateCategorySchema),
   CategoryController.updateCategory
 );
 
-router.delete('/:id', authGuard('ADMIN'), CategoryController.deleteCategory);
+router.delete(
+  '/:id',
+  authGuard('ADMIN'),
+  permissionGuard(AdminPermission.MANAGE_CATEGORIES),
+  CategoryController.deleteCategory
+);
 
 export const CategoryRouter = router;

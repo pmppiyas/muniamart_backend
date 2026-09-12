@@ -1,10 +1,10 @@
-import { OrderStatus, PaymentProvider, PaymentStatus } from '@prisma/client';
+import { OrderStatus, PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
 import { IPaymentStrategy } from './payment.strategy';
 import { StripePayment } from './stripe.payment';
 import { AppError } from '../../utils/appError';
 import { StatusCodes } from 'http-status-codes';
 import { IJwtPayload } from '../auth/auth.interface';
-import { IbKashCallback, ICreatePaymentRequest } from './payment.interface';
+import { IbKashCallback, ICreatePaymentRequest, IPaymentQuery } from './payment.interface';
 import prisma from '../../config/prisma';
 import Stripe from 'stripe';
 import { stripe } from '../../config/stripe';
@@ -323,8 +323,166 @@ const handleBkashCallback = async (payload: IbKashCallback) => {
   };
 };
 
+const getAllPayments = async (query: IPaymentQuery) => {
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.max(1, Number(query.limit) || 15);
+  const skip = (page - 1) * limit;
+
+  const whereConditions: Prisma.PaymentWhereInput = {};
+
+  if (query.search && query.search.trim()) {
+    const s = query.search.trim();
+    whereConditions.OR = [
+      { transactionId: { contains: s, mode: 'insensitive' } },
+      { orderId: { contains: s, mode: 'insensitive' } },
+      { order: { customer: { name: { contains: s, mode: 'insensitive' } } } },
+      { order: { customer: { email: { contains: s, mode: 'insensitive' } } } },
+      { order: { customer: { phone: { contains: s, mode: 'insensitive' } } } },
+      { order: { address: { fullName: { contains: s, mode: 'insensitive' } } } },
+      { order: { address: { email: { contains: s, mode: 'insensitive' } } } },
+      { order: { address: { phone: { contains: s, mode: 'insensitive' } } } },
+    ];
+  }
+
+  if (query.provider && query.provider !== 'ALL') {
+    whereConditions.provider = query.provider as PaymentProvider;
+  }
+
+  if (query.status && query.status !== 'ALL') {
+    whereConditions.status = query.status as PaymentStatus;
+  }
+
+  if (query.startDate || query.endDate) {
+    whereConditions.createdAt = {};
+    if (query.startDate) {
+      whereConditions.createdAt.gte = new Date(query.startDate);
+    }
+    if (query.endDate) {
+      const end = new Date(query.endDate);
+      end.setHours(23, 59, 59, 999);
+      whereConditions.createdAt.lte = end;
+    }
+  }
+
+  const [payments, total, totalPayments, successfulCount, pendingCount, failedCount, successPayments] =
+    await Promise.all([
+      prisma.payment.findMany({
+        where: whereConditions,
+        skip,
+        take: limit,
+        include: {
+          order: {
+            select: {
+              id: true,
+              totalAmount: true,
+              status: true,
+              createdAt: true,
+              customer: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  phone: true,
+                  photoUrl: true,
+                },
+              },
+              address: {
+                select: {
+                  fullName: true,
+                  phone: true,
+                  email: true,
+                  streetAddress: true,
+                  city: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      }),
+      prisma.payment.count({ where: whereConditions }),
+      prisma.payment.count(),
+      prisma.payment.count({ where: { status: 'SUCCESS' } }),
+      prisma.payment.count({ where: { status: 'PENDING' } }),
+      prisma.payment.count({ where: { status: 'FAILED' } }),
+      prisma.payment.findMany({
+        where: { status: 'SUCCESS' },
+        select: {
+          provider: true,
+          order: {
+            select: {
+              totalAmount: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+  let totalRevenue = 0;
+  let stripeRevenue = 0;
+  let bkashRevenue = 0;
+
+  for (const sp of successPayments) {
+    const amount = Number(sp.order?.totalAmount || 0);
+    totalRevenue += amount;
+    if (sp.provider === 'STRIPE') {
+      stripeRevenue += amount;
+    } else if (sp.provider === 'BKASH') {
+      bkashRevenue += amount;
+    }
+  }
+
+  const totalPage = Math.ceil(total / limit);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage,
+      metrics: {
+        totalPayments,
+        successfulCount,
+        pendingCount,
+        failedCount,
+        totalRevenue,
+        stripeRevenue,
+        bkashRevenue,
+      },
+    },
+    data: payments,
+  };
+};
+
+const getSinglePayment = async (paymentId: string) => {
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: {
+      order: {
+        include: {
+          customer: true,
+          address: true,
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!payment) {
+    throw new AppError(StatusCodes.NOT_FOUND, 'Payment record not found');
+  }
+
+  return payment;
+};
+
 export const PaymentServices = {
   createPayment,
   handleStripeWebhook,
   handleBkashCallback,
+  getAllPayments,
+  getSinglePayment,
 };

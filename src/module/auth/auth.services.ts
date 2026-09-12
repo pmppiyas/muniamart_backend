@@ -125,6 +125,7 @@ const getMe = async (userPayload: { userId: string; email: string; role?: string
         photoUrl: true,
         role: true,
         status: true,
+        permissions: true,
         createdAt: true,
       },
     });

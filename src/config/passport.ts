@@ -19,6 +19,12 @@ passport.use(
         });
 
         if (admin) {
+          if (admin.status === 'INACTIVE') {
+            return done(null, false, {
+              message: 'Your admin account has been deactivated. Please contact Super Admin.',
+            });
+          }
+
           const isPasswordMatch = await bcrypt.compare(
             password,
             admin.password || ''
@@ -30,7 +36,11 @@ passport.use(
 
           return done(
             null,
-            { ...admin, role: admin.role || 'ADMIN' },
+            {
+              ...admin,
+              role: admin.role || 'ADMIN',
+              permissions: admin.permissions || [],
+            },
             { message: 'Login successful.' }
           );
         }
@@ -42,6 +52,12 @@ passport.use(
         });
 
         if (customer) {
+          if (customer.status === 'BLOCKED') {
+            return done(null, false, {
+              message: 'Your account has been blocked. Please contact support.',
+            });
+          }
+
           const isPasswordMatch = await bcrypt.compare(
             password,
             customer.password || ''
@@ -72,11 +88,11 @@ passport.serializeUser((user: any, done: (err: any, id?: unknown) => void) => {
 
 passport.deserializeUser(async (payload: any, done: any) => {
   try {
-    if (payload.role === 'ADMIN') {
+    if (payload.role === 'ADMIN' || payload.role === 'SUPER_ADMIN') {
       const admin = await prisma.admin.findUnique({
         where: { id: payload.id },
       });
-      done(null, admin ? { ...admin, role: 'ADMIN' } : null);
+      done(null, admin ? { ...admin, permissions: admin.permissions || [] } : null);
     } else {
       const customer = await prisma.customer.findUnique({
         where: { id: payload.id },

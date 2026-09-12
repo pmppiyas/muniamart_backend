@@ -49,6 +49,7 @@ const signIn = catchAsync(
             name: user.name,
             email: user.email,
             ...(user.role ? { role: user.role } : {}),
+            ...(user.permissions ? { permissions: user.permissions } : {}),
             photoUrl: user.photoUrl,
             status: user.status,
           },
